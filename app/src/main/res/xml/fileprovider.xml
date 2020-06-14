@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--name,此值会隐藏您要共享的子目录的名称,path,实际的子目录名称-->
+    <!--设备根目录new File("/")-->
+    <root-path name="root" path="" />
+    <!--代表context.getFilesDir()-->
+    <files-path name="my_files" path="files" />
+    <!--代表context.getCacheDir()-->
+    <cache-path name="cache" path="images" />
+    <!--代表Environment.getExternalStorageDirectory(),如下代表的目录即为：Environment.getExternalStorageDirectory()/upload，其他同理。-->
+    <external-path name="external" path="upload" />
+    <!--代表context.getExternalFilesDirs()-->
+    <external-files-path name="name1" path="path1" />
+    <!--代表getExternalCacheDirs()-->
+    <external-cache-path name="name2" path="path2" />
+</paths>
