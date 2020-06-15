@@ -30,9 +30,19 @@
         android:layout_height="50dp"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_trans_multi"
         android:text="单文件上传"
         android:onClick="singleUpload"
+        android:layout_margin="8dp"/>
+    <Button
+        android:id="@+id/btn_trans_multi"
+        android:layout_width="0dp"
+        android:layout_height="50dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:text="多文件上传"
+        android:onClick="multiUpload"
         android:layout_margin="8dp"/>
 
 </androidx.constraintlayout.widget.ConstraintLayout>

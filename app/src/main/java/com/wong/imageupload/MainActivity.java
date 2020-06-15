@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.ClipData;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -284,6 +285,75 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * 多文件上传
+     * @param view
+     */
+    public void multiUpload(View view){
+
+        List<File> fileList = new ArrayList<>();
+        for (ItemBean itemBean : list) {
+            if (itemBean.isButton()) continue;
+            fileList.add(itemBean.getImageFileBean().getFile());
+            itemBean.getImageFileBean().setStartUpload(true);
+            adapter.notifyDataSetChanged();
+        }
+        // 用上传的文件生成RequestBody
+        if(fileList == null || fileList.size() == 0)return;
+
+        //创建MultipartBody.Builder，用于添加请求的数据
+        MultipartBody.Builder builder = new MultipartBody.Builder();
+        for (int i = 0; i < fileList.size(); i++) { //对文件进行遍历
+            //根据文件的后缀名，获得文件类型
+            builder.setType(MultipartBody.FORM)
+                    .addFormDataPart("name",fileList.get(i).getName())// 其他信息
+                    .addFormDataPart("id","12,13,14")// 其他信息
+                    .addFormDataPart("type","2"+i)// 其他信
+                    .addFormDataPart( //给Builder添加上传的文件
+                            "images",  //请求的名字
+                            fileList.get(i).getName(), //文件的文字，服务器端用来解析的
+                            RequestBody.Companion.create(fileList.get(i),MediaType.parse("multipart/form-data"))//创建RequestBody，把上传的文件放入
+                    );
+        }
+        RequestBody requestBody = builder.build();//根据Builder创建请求
+        Request request = new Request.Builder()
+                .url(Global.MULTI_FILE_UPLOAD_URL)
+                .post(requestBody)
+                .addHeader("user-agent", "PDA")
+                .addHeader("x-userid", "752332")// 添加x-userid请求头
+                .addHeader("x-sessionkey", "kjhsfjkaskfashfuiwf")// 添加x-sessionkey请求头
+                .addHeader("x-tonce", Long.valueOf(System.currentTimeMillis()).toString())// 添加x-tonce请求头
+                .addHeader("x-timestamp", Long.valueOf(System.currentTimeMillis()).toString())// 添加x-timestamp请求头
+                .build();
+
+        final Message msg = myHandler.obtainMessage();
+        OkHttpClient okHttpClient = new OkHttpClient();
+        okHttpClient.newCall(request)
+                .enqueue(new Callback() {
+            @Override
+            public void onFailure(@NotNull Call call, @NotNull IOException e) {
+                msg.obj = list;
+                msg.what =0;
+                myHandler.sendMessage(msg);
+            }
+
+            @Override
+            public void onResponse(@NotNull Call call, @NotNull Response response) throws IOException {
+                String result = response.body().string();
+                Log.i("上传图片结果：", result);
+                msg.obj = list;
+                if (!response.isSuccessful()) {
+                    Log.i("响应失败：", response.code() + "");
+                    msg.what =1;
+                    return;
+                }
+                msg.what = 3;
+                myHandler.sendMessage(msg);
+
+            }
+        });
+    }
+
     private static class MyHandler extends Handler {
         private Context mContext;
         private LoadImageAdapter loadImageAdapter;
@@ -294,12 +364,30 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void handleMessage(@NonNull Message msg) {
-            ImageFileBean fileBean = (ImageFileBean)msg.obj;
-            fileBean.setStartUpload(false);
+            List<ItemBean> itemBeanList = null;
+            ImageFileBean fileBean = null;
+            if(msg.obj instanceof List){
+                itemBeanList = (List<ItemBean>)msg.obj;
+                for(ItemBean itemBean:itemBeanList){
+                    if(itemBean.isButton())continue;
+                    itemBean.getImageFileBean().setStartUpload(false);
+                }
+            }else if(msg.obj instanceof ImageFileBean){
+                fileBean= (ImageFileBean)msg.obj;
+                fileBean.setStartUpload(false);
+            }
+
             switch (msg.what) {
                 case 0:
                     Toast.makeText(mContext, "连接服务器失败", Toast.LENGTH_SHORT).show();
-                    fileBean.setUpload(false);
+                    if(fileBean !=null) {
+                        fileBean.setUpload(false);
+                    }else if(itemBeanList != null){
+                        for(ItemBean itemBean:itemBeanList){
+                            if(itemBean.isButton())continue;
+                            itemBean.getImageFileBean().setUpload(false);
+                        }
+                    }
                     break;
 
                 case 2:
@@ -309,7 +397,14 @@ public class MainActivity extends AppCompatActivity {
 
                 case 3:
                     Toast.makeText(mContext, "上传成功！", Toast.LENGTH_SHORT).show();
-                    fileBean.setUpload(true);
+                    if(fileBean !=null) {
+                        fileBean.setUpload(true);
+                    }else if(itemBeanList != null){
+                        for(ItemBean itemBean:itemBeanList){
+                            if(itemBean.isButton())continue;
+                            itemBean.getImageFileBean().setUpload(true);
+                        }
+                    }
 
                     break;
             }
@@ -335,7 +430,7 @@ public class MainActivity extends AppCompatActivity {
                 .addFormDataPart("id","12,13,14")// 其他信息
                 .addFormDataPart("type","2")// 其他信
                 .addFormDataPart("file", file.getName(),
-                        RequestBody.create(MediaType.parse("multipart/form-data"), file))//文件
+                        RequestBody.Companion.create(file,MediaType.parse("multipart/form-data")))//文件
                 .build();
         Request request = new Request.Builder()
                 .url(Global.UPLOAD_URL).post(requestBody)
